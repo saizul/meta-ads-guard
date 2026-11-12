@@ -1,0 +1,12 @@
+.git
+.github
+tests
+examples
+**/__pycache__
+*.egg-info
+.venv
+.env
+.meta-ads-guard
+*.sqlite
+*.db
+*.jsonl

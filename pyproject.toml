@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meta-ads-guard"
+version = "0.1.0"
+description = "Rules engine for Meta (Facebook/Instagram) ad accounts: pause, scale, label and alert from YAML rules over Marketing API insights."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Saizul Amin" }]
+keywords = ["meta-ads", "facebook-ads", "marketing-api", "automation", "ppc", "rules-engine", "instagram-ads"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+    "Topic :: Internet :: WWW/HTTP",
+]
+dependencies = [
+    "PyYAML>=6.0",
+    # zoneinfo needs a tz database; slim containers and Windows do not ship one.
+    "tzdata>=2023.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/saizul/meta-ads-guard"
+Issues = "https://github.com/saizul/meta-ads-guard/issues"
+Changelog = "https://github.com/saizul/meta-ads-guard/blob/main/CHANGELOG.md"
+
+[project.scripts]
+meta-ads-guard = "meta_ads_guard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "SIM", "RUF"]
+# Optional[...] stays readable on Python 3.9, where X | None is not valid at runtime.
+ignore = ["SIM108", "RUF001", "RUF002", "RUF003", "UP007", "UP045"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

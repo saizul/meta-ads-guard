@@ -1,0 +1,118 @@
+# meta-ads-guard example configuration.
+#
+# Secrets never go in this file. Every token, password and webhook URL is read
+# from an environment variable named here (see examples/.env.example).
+# ${VAR} and ${VAR:-default} are expanded anywhere in the file.
+
+account:
+  id: "${META_AD_ACCOUNT_ID:-act_1234567890}"
+  currency: BDT            # optional; detected from the ad account and checked
+  timezone: Asia/Dhaka     # optional; windows are computed in the account time zone
+
+api:
+  version: v27.0           # pin the Graph API version you have tested
+  access_token_env: META_ACCESS_TOKEN
+  app_secret_env: META_APP_SECRET   # optional, adds appsecret_proof to every call
+  usage_threshold: 85      # slow down when any usage header passes this percentage
+  max_retries: 5
+
+insights:
+  mode: auto               # auto: async report jobs for windows longer than the threshold
+  async_threshold_days: 30
+  # attribution_windows: ["7d_click", "1d_view"]
+
+state:
+  path: .meta-ads-guard/state.sqlite   # .json also works
+  cooldown_scope: rule                 # or "object": one action per object across all rules
+
+audit:
+  path: .meta-ads-guard/audit.jsonl
+  include_dry_run: true
+
+safety:
+  max_actions_per_run: 25
+  max_budget_increase_pct: 30
+  max_budget_decrease_pct: 50
+
+defaults:
+  window: 3d               # today plus the two days before it
+  cooldown: 6h
+  result: purchases        # what "results" and "cpa" count
+  effective_status: [ACTIVE]
+
+vars:
+  target_cpa: 450          # BDT
+
+notifiers:
+  telegram:
+    type: telegram
+    bot_token_env: TELEGRAM_BOT_TOKEN
+    chat_id: "-1001234567890"
+  slack:
+    type: webhook
+    url_env: SLACK_WEBHOOK_URL
+  email:
+    type: email
+    host: smtp.example.com
+    port: 587
+    security: starttls
+    username_env: SMTP_USERNAME
+    password_env: SMTP_PASSWORD
+    from: ads-alerts@example.com
+    to: [owner@example.com]
+
+notify:
+  mode: digest             # one message per channel per run; "each" for one per match
+
+rules:
+  - name: stop-spend-without-purchases
+    description: Ad sets that burned money for three days without a single sale.
+    level: adset
+    when: spend > 1500 BDT and purchases == 0 in last 3 days
+    actions: [pause, notify]
+    cooldown: 12h
+
+  - name: creative-fatigue
+    level: ad
+    when: frequency[7d] > 3.5 and impressions[7d] > 5000 and ctr[7d] < 0.8
+    actions:
+      - label: fatigued
+      - notify: telegram
+    cooldown: 24h
+
+  - name: cpa-above-target
+    level: adset
+    window: 7d
+    when: cpa > target_cpa × 1.4 and results >= 3
+    actions:
+      - scale_budget: { percent: -20, min: 500 }
+      - notify
+    cooldown: 24h
+
+  - name: scale-winners
+    level: adset
+    window: 3d
+    when: roas > 3 and spend > 2000 and cpa < target_cpa * 0.8 and age_days >= 3
+    filters:
+      labels_none: [no-autoscale]
+    actions:
+      - scale_budget: { percent: 15, max: 20000 }
+      - notify: slack
+    cooldown: 24h
+
+  - name: messenger-leads-too-expensive
+    level: adset
+    window: 3d
+    result: messages
+    when: cost_per_result > 60 and results >= 10
+    filters:
+      name_contains: [messenger, inbox]
+    actions: [notify]
+
+  - name: spend-spike-today
+    level: campaign
+    when: spend[today] > 2 * spend[last_7d] / 7 and spend[today] > 3000
+    actions:
+      - notify:
+          channels: [telegram, email]
+          message: "{name} already spent {spend} {currency} in {window}. Check it."

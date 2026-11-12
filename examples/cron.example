@@ -1,0 +1,3 @@
+# crontab -e
+# Check every 30 minutes and act. Load secrets from a root-only env file.
+*/30 * * * * cd /opt/meta-ads-guard && set -a && . ./.env && set +a && /opt/meta-ads-guard/.venv/bin/meta-ads-guard run -c guard.yaml --apply >> /var/log/meta-ads-guard.log 2>&1

@@ -1,0 +1,32 @@
+# Example workflow for a private repository that holds your guard.yaml.
+# Store the token and webhook URLs as repository secrets.
+name: Ads guard
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "git+https://github.com/saizul/meta-ads-guard.git"
+      # Cooldowns must survive between runs; keep the state file in the cache.
+      - uses: actions/cache@v4
+        with:
+          path: .meta-ads-guard
+          key: guard-state-${{ github.run_id }}
+          restore-keys: guard-state-
+      - run: meta-ads-guard run -c guard.yaml --apply
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

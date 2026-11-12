@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!examples/.env.example
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local state, audit logs and configs with real account data
+.meta-ads-guard/
+*.sqlite
+*.sqlite3
+*.db
+audit.jsonl
+/guard.yaml
+*.log
