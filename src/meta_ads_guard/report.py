@@ -39,6 +39,11 @@ def render_run(report: RunReport) -> str:
     ]
     checked = ", ".join(f"{k}={v}" for k, v in report.checked.items()) or "none"
     head.append(f"objects checked per rule: {checked}")
+    if report.skipped_rules:
+        head.append(
+            "rules not run: "
+            + "; ".join(f"{k} {v}" for k, v in report.skipped_rules.items())
+        )
     out = ["\n".join(head)]
 
     if report.matches:
@@ -54,8 +59,10 @@ def render_run(report: RunReport) -> str:
                              r.description if r.kind == "notify" else
                              f"{r.description}: {r.detail}", values])
         out.append(table(["rule", "level", "name", "id", "status", "action", "values"], rows))
-    else:
+    elif report.checked or not report.skipped_rules:
         out.append("no rule matched")
+    else:
+        out.append("no rule ran (all are outside their schedule)")
 
     counts = report.counts()
     if counts:

@@ -102,6 +102,7 @@ class RunReport:
     checked: dict[str, int] = field(default_factory=dict)
     matches: list[Match] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    skipped_rules: dict[str, str] = field(default_factory=dict)
     notifications_sent: int = 0
     api_calls: int = 0
     finished_at: Optional[datetime] = None
@@ -133,6 +134,7 @@ class RunReport:
             "counts": self.counts(),
             "matches": [m.to_dict() for m in self.matches],
             "errors": self.errors,
+            "skipped_rules": self.skipped_rules,
             "notifications_sent": self.notifications_sent,
             "api_calls": self.api_calls,
         }
@@ -180,6 +182,7 @@ class Engine:
         notifiers: Optional[dict[str, Notifier]] = None,
         apply: bool = False,
         notify_in_dry_run: bool = False,
+        ignore_schedule: bool = False,
         now: Callable[[], datetime] = utcnow,
     ):
         self.config = config
@@ -189,6 +192,7 @@ class Engine:
         self.notifiers = notifiers or {}
         self.apply = apply
         self.notify_in_dry_run = notify_in_dry_run
+        self.ignore_schedule = ignore_schedule
         self._now = now
         self._objects: dict[tuple[str, tuple[str, ...]], list[AdObject]] = {}
         self._registry: dict[str, AdObject] = {}
@@ -503,6 +507,14 @@ class Engine:
             rules = [r for r in self.config.rules if r.name in only]
         today = started.astimezone(self._tz).date()
         for rule in rules:
+            if (
+                rule.schedule is not None
+                and not self.ignore_schedule
+                and not rule.schedule.is_active(started, self._tz)
+            ):
+                report.skipped_rules[rule.name] = rule.schedule.explain(started, self._tz)
+                log.info("rule %s skipped: %s", rule.name, report.skipped_rules[rule.name])
+                continue
             try:
                 matches = self.evaluate_rule(rule, report)
             except GraphAPIError as exc:

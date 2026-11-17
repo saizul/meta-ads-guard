@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Rule schedules: `schedule` on a rule (or `defaults.schedule` for all rules)
+  limits it to certain `days` (`mon-fri`, `weekends`, wrapping ranges such as
+  `fri-mon`, lists), `hours` (`"09:00-21:00"`, several ranges, ranges that wrap
+  past midnight) and skips `exclude_dates`, in the ad account time zone or a
+  `timezone` of its own. `schedule: always` opts a rule out of the default.
+- Rules outside their schedule are not evaluated; the run report lists them
+  under "rules not run" and the JSON report under `skipped_rules`.
+- `run --ignore-schedule` to evaluate every rule regardless of its schedule.
+- `validate` shows each rule's schedule.
+- `CODE_OF_CONDUCT.md`, issue templates and a pull request template.
+
 ## [0.1.0] - 2026-11-12
 
 ### Added
