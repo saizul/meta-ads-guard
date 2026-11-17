@@ -40,6 +40,10 @@ own. This tool runs from cron, a container or a scheduled workflow. It is
   `age_days`.
 - **Actions**: `pause`, `notify`, `scale_budget` by a percentage within
   `min`/`max` caps (in major currency units), and `label`.
+- **Schedules**: limit a rule to certain days and hours (`days: mon-fri`,
+  `hours: "09:00-21:00"`, ranges that wrap past midnight, holiday
+  `exclude_dates`), in the ad account time zone or one you name. Set a default
+  for every rule under `defaults.schedule`.
 - **Safety**: dry run by default, cooldowns per object, a cap on actions per
   run, a cap on budget change per action, and validation that catches unknown
   metrics, mismatched currencies and risky settings before anything runs.
@@ -118,6 +122,7 @@ the real engine against a fake in-memory account.
 ```text
 meta-ads-guard run        evaluate rules; plan (default) or --apply
                           --rule NAME (repeatable)  --notify (send during a dry run)  --json
+                          --ignore-schedule (run rules outside their days/hours too)
 meta-ads-guard validate   check the config file without calling the API
 meta-ads-guard insights   metrics per object: --level --window --result --sort --top --json
 meta-ads-guard cooldowns  list cooldowns, or --clear [--rule NAME]
@@ -151,10 +156,44 @@ rules:
       - scale_budget: { percent: -20, min: 500 }
       - notify
     cooldown: 24h
+    schedule:                       # optional; see "Schedules" below
+      days: mon-fri
+      hours: "09:00-21:00"
     enabled: true
 ```
 
 `when` can also be a list. Its items are joined with `and`.
+
+### Schedules
+
+A `schedule` limits when a rule runs. Outside its schedule the rule is not
+evaluated at all: no insights are fetched for it, nothing is planned and no
+cooldown is touched. The run report lists it under `rules not run` (and under
+`skipped_rules` in `--json` output).
+
+```yaml
+schedule:
+  days: mon-fri              # mon..sun, ranges (fri-mon wraps), lists, weekdays, weekends, daily
+  hours: ["09:00-13:00", "22:00-02:00"]   # optional; start included, end excluded
+  exclude_dates: [2026-12-16, 2026-12-25] # optional; holidays, sale days
+  timezone: Asia/Dhaka       # optional; defaults to the ad account time zone
+```
+
+- Leave `hours` out to run all day on the listed days, or `days` out to run
+  every day within the hours.
+- `18:00-24:00` runs until midnight. A range such as `22:00-02:00` wraps past
+  midnight and belongs to the day it starts on, so with `days: fri` it is
+  active from Friday 22:00 until Saturday 02:00.
+- `exclude_dates` are matched against the day a range starts on.
+- `defaults.schedule` applies to every rule that has no `schedule` of its own.
+  Set `schedule: always` on a rule to opt out of the default.
+- `meta-ads-guard run --ignore-schedule` evaluates every rule regardless of its
+  schedule, which is handy for testing a rule at any time of day.
+
+Typical uses: only pause ad sets during office hours when someone can react to
+the alert, scale budgets only early in the day, or skip a rule on sale days
+when CPA targets do not apply. Schedules do not replace cron; they make one
+config safe to run every 15 minutes around the clock.
 
 ### Windows
 
@@ -238,6 +277,7 @@ commented file. `${VAR}` and `${VAR:-default}` are expanded everywhere.
 | `safety.max_actions_per_run` | `25` | matches beyond it are reported as `capped` |
 | `safety.max_budget_increase_pct`, `safety.max_budget_decrease_pct` | `50`, `50` | upper bounds for `scale_budget.percent` |
 | `defaults.window`, `defaults.cooldown`, `defaults.result`, `defaults.effective_status`, `defaults.level` | `3d`, `6h`, `purchases`, `[ACTIVE]`, `adset` | rule defaults |
+| `defaults.schedule` | none (always) | default [schedule](#schedules) for rules without their own |
 | `vars` | none | numbers usable in every rule |
 | `notify.mode` | `digest` | or `each` |
 
@@ -350,7 +390,8 @@ notifiers and the CLI.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately as
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately as
 described in [SECURITY.md](SECURITY.md).
 
 ## License

@@ -17,6 +17,7 @@ from .metrics import (
     is_known_metric,
     resolve_result_types,
 )
+from .schedule import Schedule, parse_schedule
 from .timeutil import canonical_window, parse_duration
 
 LEVELS = ("campaign", "adset", "ad")
@@ -130,6 +131,7 @@ class Rule:
     description: str = ""
     message: Optional[str] = None
     enabled: bool = True
+    schedule: Optional[Schedule] = None
 
     def windows(self) -> list[str]:
         """Canonical windows this rule needs insights for."""
@@ -264,7 +266,7 @@ def parse_rule(
         raise ConfigError(f"{where} must be a mapping")
     allowed = {
         "name", "description", "enabled", "level", "when", "window", "result", "vars",
-        "filters", "actions", "cooldown", "message",
+        "filters", "actions", "cooldown", "message", "schedule",
     }
     unknown = set(raw) - allowed
     if unknown:
@@ -342,6 +344,9 @@ def parse_rule(
     enabled = raw.get("enabled", True)
     if not isinstance(enabled, bool):
         raise ConfigError(f"{where}: enabled must be true or false")
+    # A rule-level ``schedule`` (even ``always``) replaces the default one.
+    schedule_raw = raw["schedule"] if "schedule" in raw else defaults.get("schedule")
+    schedule = parse_schedule(schedule_raw, f"{where}.schedule")
 
     return Rule(
         name=name,
@@ -357,6 +362,7 @@ def parse_rule(
         description=str(raw.get("description") or ""),
         message=message,
         enabled=enabled,
+        schedule=schedule,
     )
 
 

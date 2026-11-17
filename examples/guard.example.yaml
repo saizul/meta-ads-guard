@@ -39,6 +39,7 @@ defaults:
   cooldown: 6h
   result: purchases        # what "results" and "cpa" count
   effective_status: [ACTIVE]
+  # schedule: { days: mon-sat, hours: "08:00-23:00" }   # rules run only then; per-rule override
 
 vars:
   target_cpa: 450          # BDT
@@ -99,6 +100,10 @@ rules:
       - scale_budget: { percent: 15, max: 20000 }
       - notify: slack
     cooldown: 24h
+    schedule:                # scale only in the morning, never on sale days
+      days: daily
+      hours: "06:00-12:00"
+      exclude_dates: [2026-11-28]
 
   - name: messenger-leads-too-expensive
     level: adset

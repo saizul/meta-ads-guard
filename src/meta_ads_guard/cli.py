@@ -87,6 +87,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--notify", action="store_true", help="send notifications during a dry run, marked"
     )
+    run.add_argument(
+        "--ignore-schedule", action="store_true",
+        help="run rules even outside their schedule (days/hours)",
+    )
     run.add_argument("--json", action="store_true", help="print the report as JSON")
 
     val = sub.add_parser("validate", help="check the config file without calling the API")
@@ -121,9 +125,11 @@ def cmd_validate(config: Config, out: TextIO) -> int:
     for r in config.rules:
         rows.append([
             r.name, r.level, r.window, ", ".join(a.describe() for a in r.actions),
-            "off" if not r.enabled else str(r.cooldown), r.condition.source,
+            "off" if not r.enabled else str(r.cooldown),
+            r.schedule.describe() if r.schedule else "always", r.condition.source,
         ])
-    print(table(["rule", "level", "window", "actions", "cooldown", "when"], rows), file=out)
+    print(table(["rule", "level", "window", "actions", "cooldown", "schedule", "when"], rows),
+          file=out)
     if config.notifiers:
         print("notifiers: " + ", ".join(
             f"{k} ({v['type']})" for k, v in config.notifiers.items()), file=out)
@@ -237,6 +243,7 @@ def main(
                 notifiers=notifiers,
                 apply=args.apply,
                 notify_in_dry_run=args.notify,
+                ignore_schedule=args.ignore_schedule,
             )
             report = engine.run(args.rule)
         finally:

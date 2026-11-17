@@ -15,6 +15,7 @@ from .errors import ConfigError
 from .graph import DEFAULT_API_VERSION, normalize_account_id
 from .notify import EmailNotifier, Notifier, TelegramNotifier, WebhookNotifier
 from .rules import ScaleBudgetAction, parse_rule
+from .schedule import parse_schedule
 from .timeutil import canonical_window, get_timezone, parse_duration
 
 _ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
@@ -230,12 +231,16 @@ def parse_config(
 
     defaults = _section(doc, "defaults")
     _check_keys(
-        defaults, {"window", "cooldown", "result", "effective_status", "level"}, "defaults"
+        defaults,
+        {"window", "cooldown", "result", "effective_status", "level", "schedule"},
+        "defaults",
     )
     if "window" in defaults:
         canonical_window(defaults["window"])
     if "cooldown" in defaults:
         parse_duration(defaults["cooldown"])
+    if "schedule" in defaults:
+        parse_schedule(defaults["schedule"], "defaults.schedule")
 
     raw_vars = _section(doc, "vars")
     global_vars = {str(k).lower(): _num(v, f"vars.{k}", minimum=-1e18) for k, v in

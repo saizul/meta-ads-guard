@@ -74,8 +74,13 @@ src/meta_ads_guard/
   state.py        JSON / SQLite cooldown store
   audit.py        JSON Lines audit log
   timeutil.py     windows and durations
+  schedule.py     rule schedules (days, hours, excluded dates)
   currency.py     budget minor units
   notify/         Telegram, webhook, email
 tests/            pytest suite with a mocked HTTP layer
 examples/         configs, scripts and scheduling examples
 ```
+
+## Code of conduct
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). By taking part you agree to abide by it.
